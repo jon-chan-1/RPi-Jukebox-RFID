@@ -209,10 +209,38 @@ def wlan_disable_power_down(card=None):
     if card is None:
         card = cfg.setndefault('host', 'wlan_power', 'card', value='wlan0')
     logger.info(f'Disable power down management of {card}')
-    ret = subprocess.run(['sudo', 'iwconfig', card, 'power', 'off'],
-                         stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
-    if ret.returncode != 0:
-        logger.error(f"{ret.stdout}")
+    
+    # Try NetworkManager first (Bookworm), then fall back to iwconfig
+    # Check if NetworkManager is active
+    nm_check = subprocess.run(['systemctl', 'is-active', 'NetworkManager.service'],
+                              stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    if nm_check.returncode == 0:
+        # Use NetworkManager to disable power saving
+        # Get active connection for the interface
+        nm_get_conn = subprocess.run(['nmcli', '-t', '-f', 'DEVICE,CONNECTION', 'device', 'status'],
+                                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False, text=True)
+        if nm_get_conn.returncode == 0:
+            for line in nm_get_conn.stdout.split('\n'):
+                if line.startswith(f'{card}:'):
+                    conn_name = line.split(':', 1)[1] if ':' in line else None
+                    if conn_name:
+                        ret = subprocess.run(['sudo', 'nmcli', 'connection', 'modify', conn_name, 'wifi.powersave', '2'],
+                                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+                        if ret.returncode == 0:
+                            logger.info(f'Disabled WiFi power management via NetworkManager for {conn_name}')
+                            return
+                        else:
+                            logger.warning(f'Failed to set power management via NetworkManager: {ret.stdout}')
+    
+    # Fallback to iwconfig for older systems
+    iwconfig_check = subprocess.run(['which', 'iwconfig'], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=False)
+    if iwconfig_check.returncode == 0:
+        ret = subprocess.run(['sudo', 'iwconfig', card, 'power', 'off'],
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, check=False)
+        if ret.returncode != 0:
+            logger.error(f"Failed to disable WiFi power management: {ret.stdout}")
+    else:
+        logger.warning(f'Neither NetworkManager nor iwconfig available to disable WiFi power management')
 
 
 @plugin.register
