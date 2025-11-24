@@ -10,20 +10,20 @@ OPTIMIZE_BOOT_CONF_HEADER="## Jukebox Boot Config"
 
 _optimize_disable_irrelevant_services() {
   log "  Disable keyboard-setup.service"
-  sudo systemctl disable keyboard-setup.service
+  disable_service_if_exists keyboard-setup.service
 
   log "  Disable triggerhappy.service"
-  sudo systemctl disable triggerhappy.service
-  sudo systemctl disable triggerhappy.socket
+  disable_service_if_exists triggerhappy.service
+  disable_service_if_exists triggerhappy.socket
 
   log "  Disable raspi-config.service"
-  sudo systemctl disable raspi-config.service
+  disable_service_if_exists raspi-config.service
 
   log "  Disable apt-daily.service & apt-daily-upgrade.service"
-  sudo systemctl disable apt-daily.service
-  sudo systemctl disable apt-daily-upgrade.service
-  sudo systemctl disable apt-daily.timer
-  sudo systemctl disable apt-daily-upgrade.timer
+  disable_service_if_exists apt-daily.service
+  disable_service_if_exists apt-daily-upgrade.service
+  disable_service_if_exists apt-daily.timer
+  disable_service_if_exists apt-daily-upgrade.timer
 }
 
 _add_options_to_cmdline() {
@@ -48,8 +48,8 @@ EOF
 _optimize_handle_bluetooth() {
   if [ "$DISABLE_BLUETOOTH" = true ] ; then
     print_lc "  Disable bluetooth"
-    sudo systemctl disable hciuart.service
-    sudo systemctl disable bluetooth.service
+    disable_service_if_exists hciuart.service
+    disable_service_if_exists bluetooth.service
   fi
 }
 

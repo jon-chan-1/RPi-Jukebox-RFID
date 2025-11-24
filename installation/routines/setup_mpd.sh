@@ -21,10 +21,16 @@ _mpd_configure() {
   print_lc "  Configure MPD as user local service"
 
   # Make sure system-wide mpd is disabled
-  sudo systemctl stop mpd.socket
-  sudo systemctl stop mpd.service
-  sudo systemctl disable mpd.socket
-  sudo systemctl disable mpd.service
+  # Stop services if they exist and are running
+  if systemctl is-active --quiet mpd.socket 2>/dev/null; then
+    sudo systemctl stop mpd.socket
+  fi
+  if systemctl is-active --quiet mpd.service 2>/dev/null; then
+    sudo systemctl stop mpd.service
+  fi
+  # Disable services if they exist
+  disable_service_if_exists mpd.socket
+  disable_service_if_exists mpd.service
   # MPD will be setup as user process (rather than a system-wide process)
   mkdir -p $(dirname "$MPD_CONF_PATH")
 
