@@ -13,7 +13,23 @@ _run_set_raspi_config() {
 
   # power management of wifi: switch off to avoid disconnecting
   log "  Disable Wifi power management to avoid disconnecting"
-  sudo iwconfig wlan0 power off
+  # Use NetworkManager if available (Bookworm), otherwise fall back to iwconfig
+  if command -v nmcli >/dev/null 2>&1 && systemctl is-active --quiet NetworkManager.service 2>/dev/null; then
+    # NetworkManager: disable power saving via connection settings
+    local wifi_interface="${CURRENT_INTERFACE:-wlan0}"
+    local active_profile=$(nmcli -t -f DEVICE,CONNECTION device status | grep "^${wifi_interface}:" | cut -d':' -f2)
+    if [ -n "$active_profile" ]; then
+      sudo nmcli connection modify "$active_profile" wifi.powersave 2 2>/dev/null || true
+      log "    Disabled WiFi power management via NetworkManager for $active_profile"
+    else
+      log "    Warning: Could not find active WiFi profile, skipping power management setting"
+    fi
+  elif command -v iwconfig >/dev/null 2>&1; then
+    # Fallback to iwconfig for older systems
+    sudo iwconfig wlan0 power off 2>/dev/null || log "    Warning: Could not disable WiFi power management"
+  else
+    log "    Warning: No WiFi management tool available (nmcli or iwconfig)"
+  fi
 
   # On-board audio
   if [ "$DISABLE_ONBOARD_AUDIO" == true ]; then

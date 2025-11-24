@@ -173,6 +173,30 @@ is_NetworkManager_enabled() {
     echo $(is_service_enabled "NetworkManager.service")
 }
 
+# Safely disable a service if it exists
+# Returns 0 if service was disabled or didn't exist, 1 on error
+disable_service_if_exists() {
+    local service="$1"
+    local option="${2:+$2 }" # optional, dont't quote in 'systemctl' call!
+
+    if [[ -z "${service}" ]]; then
+        exit_on_error "ERROR: service name is missing!"
+    fi
+
+    local actual_enablement=$(_get_service_enablement $service $option)
+    if [[ -z "${actual_enablement}" ]]; then
+        log "  INFO: Service ${option}${service} does not exist, skipping disable."
+        return 0
+    elif [[ "${actual_enablement}" == "static" ]]; then
+        log "  INFO: Service ${option}${service} is static, skipping disable."
+        return 0
+    else
+        log "  Disabling ${option}${service}"
+        sudo systemctl disable ${option}${service} 2>/dev/null || true
+        return 0
+    fi
+}
+
 # create flag file if files does no exist (*.remove) or copy present conf to backup file (*.orig)
 # to correctly handling de-/activation of corresponding feature
 config_file_backup() {

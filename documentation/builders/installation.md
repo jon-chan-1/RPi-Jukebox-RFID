@@ -106,6 +106,20 @@ If you need Wifi, add the information now
 
 </details>
 
+#### Bookworm Compatibility
+<details>
+The installation script has been updated for full compatibility with Raspberry Pi OS Bookworm (Debian 12). The following fixes have been implemented:
+
+* **RFID Reader**: Updated to use `device.path` instead of deprecated `device.fn` for USB RFID readers
+* **Service Management**: Installation now safely handles missing services (triggerhappy, raspi-config, bluetooth) that may not be present in Bookworm
+* **SSH Configuration**: SSH QoS settings are now checked before modification to prevent duplicate entries or configuration issues. Includes automatic backup and rollback if syntax errors are detected.
+* **Boot Configuration Paths**: RDM6300 serial RFID reader setup now correctly detects `/boot/firmware/config.txt` path used in Bookworm
+* **WiFi Power Management**: Updated to use NetworkManager (`nmcli`) instead of deprecated `iwconfig` command, with fallback for older systems
+* **MPD Service Management**: System-wide MPD service disabling now handles cases where services may not exist
+
+These changes ensure a smooth installation experience on Bookworm without errors from missing services, deprecated APIs, or incorrect file paths.
+</details>
+
 #### Workaround for 64-bit Kernels (Pi 4 and newer)
 
 <details>
